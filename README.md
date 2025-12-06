@@ -238,3 +238,5 @@ This project is provided as-is for educational and development purposes.
 ## Support
 
 For issues and questions, please create an issue in the repository.
+
+<img width="2740" height="2402" alt="8fe810bbec860cea83973d6d17be79c8" src="https://github.com/user-attachments/assets/08192c22-99c2-40c4-8a29-773109fbaeb0" />
