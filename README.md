@@ -36,7 +36,7 @@ python_llm_mcp_rag/
 
 1. Clone the repository:
 ```bash
-cd /Users/Huyh/Documents/smart_agent/ts-node-esm-template/python_llm_mcp_rag
+cd /Users/YourUserName/Documents/smart_agent/ts-node-esm-template/python_llm_mcp_rag
 ```
 
 2. Install dependencies:
