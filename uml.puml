@@ -1,0 +1,182 @@
+classDiagram
+      %% Main Application
+      class Main {
+          +retrieve_context(prompt, knowledge_base_path) str
+          +main() void
+      }
+
+      %% Core Agent Class
+      class Agent {
+          -model: str
+          -mcp_configs: List[Dict]
+          -system_prompt: str
+          -llm_client: LLMClient
+          -mcp_manager: MCPManager
+          -embedding_retriever: EmbeddingRetriever
+          -initialized: bool
+          +__init__(model, mcp_configs, system_prompt, rag_context)
+          +init(knowledge_base_path) void
+          +invoke(prompt, stream) str
+          +get_capabilities() Dict[str, Any]
+          +clear_conversation() void
+          +close() void
+          -_build_system_prompt(system_prompt, rag_context) str
+          -_setup_tools() void
+          -_init_rag(knowledge_base_path) void
+          -_execute_tool(tool_call) str
+      }
+
+      %% Configuration
+      class Config {
+          +OPENAI_API_KEY: str
+          +OPENAI_API_BASE_URL: str
+          +OPENAI_MODEL: str
+          +EMBEDDING_KEY: str
+          +EMBEDDING_BASE_URL: str
+          +EMBEDDING_MODEL: str
+          +KNOWLEDGE_BASE_PATH: str
+          +VECTOR_STORE_SIZE: int
+          +SIMILARITY_THRESHOLD: float
+          +validate() void
+      }
+
+      %% LLM Client
+      class LLMClient {
+          -client: AsyncOpenAI
+          -model: str
+          -messages: List[Dict]
+          -tools: List[Tool]
+          +__init__(model, api_key, base_url, system_prompt)
+          +set_tools(tools) void
+          +chat_stream(prompt, tools_enabled) AsyncGenerator[str]
+          +chat(prompt, tools_enabled) str
+          +get_tool_calls() List[ToolCall]
+          +add_message(role, content) void
+          +append_tool_result(tool_call_id, tool_result) void
+          +clear_history() void
+          +close() void
+          -_get_tool_definitions() List[Dict]
+      }
+
+      %% Tool Classes
+      class Tool {
+          +name: str
+          +description: str
+          +parameters: Dict[str, Any]
+      }
+
+      class ToolCall {
+          +id: str
+          +function_name: str
+          +arguments: Dict[str, Any]
+      }
+
+      %% MCP Client System
+      class MCPManager {
+          -clients: Dict[str, MCPClient]
+          +add_client(name, command, args) void
+          +init_all() void
+          +get_client(name) MCPClient
+          +get_all_tools() Dict[str, List[MCPTool]]
+          +call_tool(client_name, tool_name, arguments) Dict[str, Any]
+          +close_all() void
+          -_init_client_safely(name, client) void
+          -_close_client_safely(name, client) void
+      }
+
+      class MCPClient {
+          -name: str
+          -command: str
+          -args: List[str]
+          -process: subprocess.Popen
+          -tools: Dict[str, MCPTool]
+          -initialized: bool
+          -message_id: int
+          +__init__(name, command, args)
+          +init() void
+          +call_tool(name, arguments) Dict[str, Any]
+          +get_tools() List[MCPTool]
+          +get_tool(name) MCPTool
+          +close() void
+          -_initialize_session() void
+          -_discover_tools() void
+          -_send_request(request) Dict[str, Any]
+          -_send_notification(notification) void
+          -_next_id() int
+      }
+
+      class MCPTool {
+          +name: str
+          +description: str
+          +input_schema: Dict[str, Any]
+      }
+
+      %% RAG System
+      class EmbeddingRetriever {
+          -api_key: str
+          -base_url: str
+          -model: str
+          -vector_store: VectorStore
+          -_session: aiohttp.ClientSession
+          +__init__(api_key, base_url, model, vector_store)
+          +create_embedding(text) List[float]
+          +create_embeddings(texts) List[List[float]]
+          +index_documents(documents, batch_size) void
+          +index_directory(directory) void
+          +retrieve(query, top_k, threshold) List[Tuple]
+          +retrieve_context(query, max_context_length, top_k) str
+          +get_stats() Dict[str, Any]
+          +close() void
+          -_get_session() aiohttp.ClientSession
+          +load_documents_from_directory(directory) List[Document]
+      }
+
+      class Document {
+          +content: str
+          +metadata: Dict[str, Any]
+      }
+
+      %% Vector Store
+      class VectorStore {
+          -items: List[VectorStoreItem]
+          -max_size: int
+          -_embedding_matrix: Optional[np.ndarray]
+          +__init__(max_size)
+          +add_item(embedding, document, metadata) void
+          +add_items(items) void
+          +search(query_embedding, top_k, threshold) List[Tuple]
+          +get_all_documents() List[str]
+          +size() int
+          +clear() void
+          +save(filepath) void
+          +load(filepath) void
+          +get_stats() Dict[str, Any]
+          -_get_embedding_matrix() np.ndarray
+          -_cosine_similarity(query_embedding, embeddings) np.ndarray
+      }
+
+      class VectorStoreItem {
+          +embedding: np.ndarray
+          +document: str
+          +metadata: Dict[str, Any]
+          +__post_init__() void
+      }
+
+      %% Relationships
+      Main --> Agent : "creates & uses"
+      Agent --> Config : "reads configuration"
+      Agent --> LLMClient : "has"
+      Agent --> MCPManager : "has"
+      Agent --> EmbeddingRetriever : "has"
+
+      LLMClient --> Tool : "uses"
+      LLMClient --> ToolCall : "produces"
+
+      MCPManager --> MCPClient : "manages multiple"
+      MCPClient --> MCPTool : "discovers & uses"
+
+      EmbeddingRetriever --> VectorStore : "has"
+      EmbeddingRetriever --> Document : "processes"
+      VectorStore --> VectorStoreItem : "contains"
+
+      Main ..> Config : "static access"
